@@ -154,3 +154,29 @@ resource "aws_security_group" "bastion_host_server_sg" {
     Name = "bastion-host-server"
   }
 }
+
+#Security group for Packer Build
+resource "aws_security_group" "packer_build_sg" {
+  name        = "packer-build-server"
+  description = "Allow connection for packer build."
+  vpc_id      = aws_vpc.vpc_elk.id
+
+  ingress {
+    description = "Allow port 22"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "packer-build-server"
+  }
+}

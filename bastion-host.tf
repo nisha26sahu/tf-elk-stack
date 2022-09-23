@@ -14,3 +14,11 @@ resource "aws_instance" "Bastion_Host" {
   }
 
 }
+
+resource "aws_eip" "bastion_host_eip" {
+  instance = aws_instance.Bastion_Host.id
+  vpc      = true
+  tags = {
+    "Name" = "bastion_eip"
+  }
+}

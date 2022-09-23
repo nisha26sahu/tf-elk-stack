@@ -1,5 +1,5 @@
 resource "aws_instance" "elasticsearch_server_instance" {
-  ami           = data.aws_ami.ubuntu.id
+  ami           = data.aws_ami.elasticsearch_ubuntu.id
   instance_type = "t2.large"
 
   vpc_security_group_ids = [aws_security_group.elasticsearch_sg.id]
@@ -13,7 +13,7 @@ resource "aws_instance" "elasticsearch_server_instance" {
 }
 
 resource "aws_instance" "kibana_server_instance" {
-  ami           = data.aws_ami.ubuntu.id
+  ami           = data.aws_ami.kibana_ubuntu.id
   instance_type = "t2.micro"
 
   vpc_security_group_ids = [aws_security_group.kibana_sg.id]
@@ -27,7 +27,7 @@ resource "aws_instance" "kibana_server_instance" {
 }
 
 resource "aws_instance" "logstash_server_instance" {
-  ami           = data.aws_ami.ubuntu.id
+  ami           = data.aws_ami.logstash_ubuntu.id
   instance_type = "t2.micro"
 
   vpc_security_group_ids = [aws_security_group.logstash_sg.id]
@@ -41,7 +41,7 @@ resource "aws_instance" "logstash_server_instance" {
 }
 
 resource "aws_instance" "filebeat_server_instance" {
-  ami           = data.aws_ami.ubuntu.id
+  ami           = data.aws_ami.filebeat_ubuntu.id
   instance_type = "t2.micro"
 
   vpc_security_group_ids = [aws_security_group.filebeat_sg.id]
@@ -55,7 +55,7 @@ resource "aws_instance" "filebeat_server_instance" {
 }
 
 resource "aws_instance" "filebeat_server1_instance" {
-  ami           = data.aws_ami.ubuntu.id
+  ami           = data.aws_ami.filebeat_ubuntu.id
   instance_type = "t2.micro"
 
   vpc_security_group_ids = [aws_security_group.filebeat_sg.id]
@@ -69,7 +69,7 @@ resource "aws_instance" "filebeat_server1_instance" {
 }
 
 resource "aws_instance" "filebeat_server2_instance" {
-  ami           = data.aws_ami.ubuntu.id
+  ami           = data.aws_ami.filebeat_ubuntu.id
   instance_type = "t2.micro"
 
   vpc_security_group_ids = [aws_security_group.filebeat_sg.id]

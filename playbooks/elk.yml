@@ -1,0 +1,212 @@
+### FOR ALL ELK STACK SERVERS ###
+---
+- name: Pre_tasks on Elkservers
+  hosts: elkservers
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Install java
+      apt:
+        name: default-jre
+        state: present
+
+### ELASTICSEARCH ###
+- name: Elasticsearch installing...
+  hosts: elastic
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: add elasticsearch apt key
+      apt_key:
+        url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+        keyring: /usr/share/keyrings/elasticsearch-keyring.gpg
+        state: present
+        
+    - name: Install apt-transport-https
+      apt:
+        name: apt-transport-https
+        update_cache: yes
+ 
+    - name: Adding elasticsearch repo
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main"
+        state: present
+        filename: elastic-8.x
+    - name: Install Elasticsearch
+      apt:
+        name: elasticsearch
+        update_cache: yes
+    - name: update elasticsearch config file IP to 0.0.0.0
+      lineinfile:
+        destfile: /etc/elasticsearch/elasticsearch.yml
+        regexp: 'network.host'
+        line: 'network.host: 0.0.0.0'
+    - name: update elasticsearch config file http port to 9200
+      lineinfile:
+        destfile: /etc/elasticsearch/elasticsearch.yml
+        regexp: 'http.port'
+        line: 'http.port: 9200'
+    - name: start elasticsearch service
+      service:
+        name: elasticsearch
+        state: started
+        enabled: true
+### KIBANA ###
+- name: Kibana Installing
+  hosts: kibana
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: add apt key
+      apt_key:
+        url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+        keyring: /usr/share/keyrings/elasticsearch-keyring.gpg
+        state: present
+        
+    - name: Install apt-transport-https
+      apt:
+        name: apt-transport-https
+        update_cache: yes
+ 
+    - name: Adding repo
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main"
+        state: present
+        filename: elastic-8.x
+        install_python_apt: true
+        update_cache: yes
+    - name: wait for conncetion
+      ansible.builtin.wait_for_connection:
+        timeout: 35
+      
+    - name: Install Kibana
+      apt:
+        name: kibana
+        state: present
+        update_cache: yes
+    - name: update kibana config IP to 0.0.0.0
+      lineinfile: 
+        destfile: /etc/kibana/kibana.yml
+        regexp: 'server.host'
+        line: 'server.host: 0.0.0.0'
+    - name: update kibana config file http port to 5601
+      lineinfile:
+        destfile: /etc/kibana/kibana.yml
+        regexp: 'server.port'
+        line: 'server.port: 5601'
+    - name: update kibana config URL of elasticsearch
+      lineinfile: 
+        destfile: /etc/kibana/kibana.yml
+        regexp: 'elasticsearch.hosts'
+        line: 'elasticsearch.hosts: ["http://192.168.2.42:9200"]'
+    - name: Start kibana
+      service: 
+        name: kibana
+        state: started
+        enabled: true
+### LOGSTASH ###
+- name: logstatsh Installing... 
+  hosts: logstash
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: add apt key
+      apt_key:
+        url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+        keyring: /usr/share/keyrings/elasticsearch-keyring.gpg
+        state: present
+        
+    - name: Install apt-transport-https
+      apt:
+        name: apt-transport-https
+        update_cache: yes
+    - name: Adding repo
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main"
+        state: present
+        filename: elastic-8.x
+    - name: wait for conncetion
+      ansible.builtin.wait_for_connection:
+        timeout: 35
+    - name: Install logstash
+      apt:
+        name: logstash
+        state: present
+        update_cache: yes
+    - name: create file main.conf for pipeline configuration
+      file:
+        path: /etc/logstash/conf.d/main.conf
+        state: touch
+        mode: u+rwx
+    - name: Create logstash pipeline configuration
+      blockinfile:
+        path: /etc/logstash/conf.d/main.conf
+        marker: ""
+        block: |
+          input {
+            beats {
+              port => 5044
+            }
+          }
+          output {
+            elasticsearch { hosts => ["http://192.168.2.42:9200"]}
+          }
+    - name: start logstash
+      service: 
+        name: logstash
+        state: started
+        enabled: true
+### DEMOSERVERS ###
+- name: Now demoservers filebeat installing
+  hosts: demoservers
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: add apt key
+      apt_key:
+        url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+        keyring: /usr/share/keyrings/elasticsearch-keyring.gpg
+        state: present
+        
+    - name: Install apt-transport-https
+      apt:
+        name: apt-transport-https
+        update_cache: yes
+    - name: Adding repo
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main"
+        state: present
+        filename: elastic-8.x
+    - name: wait for conncetion
+      ansible.builtin.wait_for_connection:
+        timeout: 35
+    - name: Install filebeat
+      apt:
+        name: filebeat
+        state: present
+        update_cache: yes
+  
+    - name: Remove filebeat yml file
+      file: 
+        path: /etc/filebeat/filebeat.yml
+        state: absent
+    - name: Create new Filebeat yml file
+      file: 
+        path: /etc/filebeat/filebeat.yml
+        state: touch
+    - name: adding filebeat yaml configuration
+      blockinfile:
+        path: /etc/filebeat/filebeat.yml
+        marker: ""
+        block: |
+          filebeat.inputs:
+          - type: log
+            paths:
+              - /var/log/*.log
+          output.logstash:
+              hosts: ["http://192.168.2.233:5044"]
+    - name: Start filebeat
+      service:
+        name: filebeat
+        state: started
+        enabled: true
